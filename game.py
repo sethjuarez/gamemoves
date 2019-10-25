@@ -1,11 +1,10 @@
-import os
 import json
 import random
 import numpy as np
 
 # available moves
 moves = ['rock', 'paper', 'scissors', 'lizard', 'spock']
-# adjacency matrix for winner
+# adjacency matrix for game
 game = [[ 0, -1,  1,  1, -1],
         [ 1,  0, -1, -1,  1],
         [-1,  1,  0,  1, -1],
@@ -13,12 +12,15 @@ game = [[ 0, -1,  1,  1, -1],
         [ 1, -1,  1, -1,  0]]
 
 # model data
+# this is what should be saved to CosmosDb
 model = {
     'hist': 5,
     'play': [],
     'pred': []
 }
 
+# this can either be retrieved from
+# CosmosDb or 0-initialized as belo
 def init():
     for i in range(model['hist']):
         if i == 0:
@@ -91,14 +93,14 @@ def update(move):
         if len(m) == i:
             break
 
-        # get coniditionals
+        # get conditional
         key = m[:i]
         # get vals
         val = m[-1]
 
         pred = predictions[i]
 
-        # update predictions
+        # update predictions n_grams
         if i == 0:
             predictions[i]['count'] += 1
             if val in pred['probs']:
@@ -120,18 +122,17 @@ def update(move):
                 }
 
 def winner(player1, player2):
-    print(f'{player1} vs. {player2}')
     idx1, idx2 = moves.index(player1), moves.index(player2)
     w = game[idx1][idx2]
     return w
 
 if __name__ == "__main__":
-    # init model - called
+    # init model
     init()
 
     plays = ['rock', 'paper', 'scissors', 'rock', 'paper', 'scissors', 'lizard', 'rock', 'spock', 'rock', 'paper']
 
-    # fill model
+    # fill model (fast forward through plays)
     for item in plays:
         update(item)
 
@@ -143,8 +144,13 @@ if __name__ == "__main__":
         computer = predict()
         # human move
         human = plays[i]
+
+        print(f'You: {human} vs. Computer: {computer}')
+
         # who won??
         w = winner(human, computer)
+        print(f'{["computer wins", "a tie", "human wins"][w+1]}')
+
         # update model
         update(human)
-        print(f'{["you lose", "a tie", "you win!"][w+1]}')
+        
